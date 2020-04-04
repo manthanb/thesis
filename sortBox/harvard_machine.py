@@ -167,7 +167,7 @@ class HNM(nn.Module):
 		P = F.relu(self.layer_ζ_2(P))
 		P = F.softmax(self.layer_ζ_3(P))
 
-		out = self._alu_compute(P, image, gps)
+		out = self._alu_compute(P, image, robotGps)
 		
 		return (out, read_weights, write_weights)
 
