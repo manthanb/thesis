@@ -103,9 +103,9 @@ class HNM(nn.Module):
 	def forward(self, X, read_weights, write_weights):
 
 		X0 = X.clone()
-		X = self.layer_1(X)
-		X = self.layer_2(X)
-		X = self.layer_3(X)
+		X = F.tanh(self.layer_1(X))
+		X = F.tanh(self.layer_2(X))
+		X = F.tanh(self.layer_3(X))
 		ξ = self.layer_ξ(X)
 
 		(read_head_params, write_head_params, erase_vector, add_vector) = self._separate_params(ξ)
@@ -168,7 +168,7 @@ class HNM(nn.Module):
 				if (i%10 == 0): print(i, epoch, loss)
 				losses.append(loss.detach().numpy())
 
-			# torch.save(self.state_dict(), 'hnm_1.pt')
+			torch.save(self.state_dict(), 'hnm.pt')
 
 			np.save("data/losses_hnm", np.array(losses))
 			if epoch % 2 == 0 and epoch >0 and learning_rate > 0.0001: learning_rate /= 2

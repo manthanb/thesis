@@ -38,6 +38,7 @@ class HNM(nn.Module):
 		self.layer2 = nn.Linear(48,72)
 		self.layer_ξ = nn.Linear(72,((self.W+1+1+3+1)*2)+(self.W*2))
 		self.layer_v = nn.Linear(325, 20)
+		self.layer_read = nn.Linear(self.W, 20)
 		self.layer_ζ = nn.Linear(72, 3)
 
 		self.read_head = F.sigmoid(torch.FloatTensor(np.random.randn(1,self.W)))
