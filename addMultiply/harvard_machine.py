@@ -164,8 +164,6 @@ class HNM(nn.Module):
 		alu_input = F.softmax(torch.cat([self.read_head, new_read_head], 1))
 		out = self._alu_compute(alu_head, alu_input)
 
-		print(ρ.detach().numpy(), alu_head.detach().numpy(), alu_input.detach().numpy())
-
 		v = self.layer_v(out)
 
 		add_vector = self._interpolate_add_vector(ρ, add_vector.clone(), v)
