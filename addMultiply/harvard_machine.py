@@ -34,12 +34,18 @@ class HNM(nn.Module):
 		self.W = W
 		self.Memory = torch.FloatTensor(np.zeros((self.N, self.W))+1e-6)
 
-		self.layer1 = nn.Linear(14,48)
-		self.layer2 = nn.Linear(48,72)
-		self.layer_ξ = nn.Linear(72,((self.W+1+1+3+1)*2)+(self.W*2))
+		self.layer1 = nn.Linear(14,32)
+		self.layer2 = nn.Linear(32,64)
+		self.layer3 = nn.Linear(64,128)
+
+		self.layer_ξ = nn.Linear(128,((self.W+1+1+3+1)*2)+(self.W*2))
+
+		self.layer_ζ_1 = nn.Linear(128+self.W, 64)
+		self.layer_ζ_2 = nn.Linear(64, 16)
+		self.layer_ζ_3 = nn.Linear(16, 3)
+
 		self.layer_v = nn.Linear(325, 20)
 		self.layer_read = nn.Linear(self.W, 20)
-		self.layer_ζ = nn.Linear(72, 3)
 
 		self.read_head = F.sigmoid(torch.FloatTensor(np.random.randn(1,self.W)))
 
@@ -134,11 +140,11 @@ class HNM(nn.Module):
 
 	def forward(self, X, read_weights, write_weights):
 
-		X = self.layer1(X)
-		X = self.layer2(X)
+		X = F.tanh(self.layer1(X))
+		X = F.tanh(self.layer2(X))
+		X = F.tanh(self.layer3(X))
 
 		ξ = self.layer_ξ(X)
-		ζ = self.layer_ζ(X)
 
 		(read_head_params, write_head_params, erase_vector, add_vector) = self._separate_params(ξ)
 
@@ -149,10 +155,17 @@ class HNM(nn.Module):
 
 		new_read_head = self._read_from_memory(read_weights)
 		
-		alu_input = torch.cat([self.read_head, new_read_head], 1)
+		ζ = F.tanh(self.layer_ζ_1(torch.cat([X, new_read_head],1)))
+		ζ = F.tanh(self.layer_ζ_2(ζ))
+		ζ = F.tanh(self.layer_ζ_3(ζ))
+
 		(ρ, alu_head) = self._separate_alu_params(ζ)
 
+		alu_input = F.softmax(torch.cat([self.read_head, new_read_head], 1))
 		out = self._alu_compute(alu_head, alu_input)
+
+		print(ρ.detach().numpy(), alu_head.detach().numpy(), alu_input.detach().numpy())
+
 		v = self.layer_v(out)
 
 		add_vector = self._interpolate_add_vector(ρ, add_vector.clone(), v)
@@ -171,14 +184,14 @@ class HNM(nn.Module):
 		for i in range(X.size()[2]):
 			(out, read_weights, write_weights) = self.forward(X[:,:,i], read_weights, write_weights)
 
-		for i in range(X.size()[2]):
-			(out, read_weights, write_weights) = self.forward(zeros, read_weights, write_weights)
+		# for i in range(X.size()[2]):
+		# 	(out, read_weights, write_weights) = self.forward(zeros, read_weights, write_weights)
 
 		return out
 
 	def train(self, X, y, mini_batch_size):
 
-		learning_rate = 0.0009
+		learning_rate = 0.0001
 		losses = []
 
 		for epoch in range(25):
@@ -197,8 +210,8 @@ class HNM(nn.Module):
 
 				losses.append(loss.detach().numpy())
 
-			torch.save(self.state_dict(), 'hnm_arch_1.pt')
-			np.save("losses/hnm_arch_1", np.array(losses))
+			torch.save(self.state_dict(), 'hnm_arch_2_softmax.pt')
+			np.save("losses/hnm_arch_2_softmax", np.array(losses))
 
 			if epoch % 10 == 0: learning_rate /= 1.5
 
